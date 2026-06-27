@@ -1,0 +1,7 @@
+node_modules
+.vscode
+dist
+*.Identifier
+yarn-error.log
+.DS_Store
+assets
