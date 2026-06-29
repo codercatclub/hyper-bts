@@ -18,8 +18,45 @@ export class VideoPlane {
     }
 
     initVideoPlane(videoPlaneObj: THREE.Object3D) {
-        let imgList = ["00/0.jpg", "00/1.jpg", "00/2.mp4", "01/0.jpg", "01/1.jpg", "10/0.jpg", "10/1.jpg", "11/0.jpg", "11/1.jpg"];
-
+        const imgList = [
+            "00/0.mp4",
+            "00/1.mp4",
+            "00/2.mp4",
+            "00/3.mp4",
+            "01/0.mp4",
+            "01/1.mp4",
+            "01/2.mp4",
+            "01/3.mp4",
+            "02/0.mp4",
+            "02/1.mp4",
+            "02/2.mp4",
+            "02/3.mp4",
+            "10/0.mp4",
+            "10/1.mp4",
+            "10/2.mp4",
+            "10/3.mp4",
+            "11/0.mp4",
+            "11/1.mp4",
+            "11/2.mp4",
+            "11/3.mp4",
+            "12/0.mp4",
+            "12/1.mp4",
+            "12/2.mp4",
+            "12/3.mp4",
+            "20/0.mp4",
+            "20/1.mp4",
+            "20/2.mp4",
+            "20/3.mp4",
+            "21/0.mp4",
+            "21/1.mp4",
+            "21/2.mp4",
+            "21/3.mp4",
+            "22/0.mp4",
+            "22/1.mp4",
+            "22/2.mp4",
+            "22/3.mp4",
+        ];
+        
         imgList.forEach((imgPath, idx) => {
             let x = parseInt(imgPath[0]);
             let y = parseInt(imgPath[1]);
@@ -35,7 +72,7 @@ export class VideoPlane {
                 video.play()
 
                 const videoTex = new THREE.VideoTexture(video);
-                videoTex.needsUpdate = true; 
+                videoTex.needsUpdate = true;
                 this.setTexAt(x, y, z, videoTex);
             } else {
                 new THREE.TextureLoader().load(fullPath, (tex) => {
@@ -73,7 +110,7 @@ export class VideoPlane {
 
         void main() {
             vUv = uv;
-            vColor = color;
+            vColor = round(color);
             vec4 worldPos = modelMatrix * vec4(position, 1.0);
 
             float lerpX = step(blendX,color.r)*color.g;
@@ -81,10 +118,11 @@ export class VideoPlane {
             float lerpZ = step(blendZ,color.r)*color.g;
 
             vLerp = vec3(lerpX, lerpY, lerpZ);
+            worldPos.xyz *= 3.5;
 
-            worldPos.x += camPos.x + lerpX*blendX;
-            worldPos.y += camPos.y + lerpY*blendY;
-            worldPos.z += camPos.z - lerpZ*blendZ-0.6;
+            worldPos.x += mix(camPos.x, camPosNext.x, 2.0*lerpX*blendX)+.5/0.3;
+            worldPos.y += mix(camPos.y, camPosNext.y, 2.0*lerpY*blendY)+.5/0.3;
+            worldPos.z += mix(camPos.z, camPosNext.z, 2.0*lerpZ*blendZ)-0.6;
 
             gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
@@ -129,7 +167,6 @@ export class VideoPlane {
             vec3 colorB = blendXY(map1b, map2b, map3b);
 
             vec3 colorZ = mix(mix(colorA,vColor,2.0*blendZ*vLerp.z), mix(colorB,vColor,2.0*blendZ*vLerp.z), blendZ);
-
             gl_FragColor = vec4(colorZ, 1.0);
         }
         `;
@@ -174,7 +211,7 @@ export class VideoPlane {
     update(deltaTime: number = 0.016): void {
         let gridScale = .3;
         let gridPos = this.camera.position.clone().multiplyScalar(gridScale);
-        gridPos.max(new THREE.Vector3(0.5, 0.5, 0.5));
+        // gridPos.max(new THREE.Vector3(0.5, 0.5, 0.5));
 
         const xIdx = Math.floor(gridPos.x);
         const yIdx = Math.floor(gridPos.y);
@@ -201,12 +238,10 @@ export class VideoPlane {
         u.blendZ.value = az.blend;
 
         u.camPos.value.copy(
-            this.camera.position.clone().add(new THREE.Vector3(0, 0, 0))
+            new THREE.Vector3(xIdx, yIdx, zIdx).multiplyScalar(1 / gridScale)
         );
         u.camPosNext.value.copy(
-            this.camera.position.clone().add(new THREE.Vector3(0, 0, -az.dir * gridScale))
+            new THREE.Vector3(xIdx + ax.dir, yIdx + ay.dir, zIdx + az.dir).multiplyScalar(1 / gridScale)
         );
-
-        console.log(u.blendZ.value)
     }
 }

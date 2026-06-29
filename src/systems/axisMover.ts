@@ -3,10 +3,13 @@ import * as THREE from 'three';
 export class AxisMover {
     private camera: THREE.PerspectiveCamera;
     private targetScroll: number;
+    private totalTime: number;
 
     constructor(camera: THREE.PerspectiveCamera) {
+        this.totalTime = 0.0;
         this.targetScroll = 0;
         this.camera = camera;
+        this.camera.position.set(0.5,0.5,0.5)
         document.addEventListener("keydown", (event: KeyboardEvent) => {
             let moveDir = new THREE.Vector3()
             switch (event.key) {
@@ -34,11 +37,11 @@ export class AxisMover {
     }
 
     update(deltaTime: number = 0.016): void {
+        this.totalTime += deltaTime;
         let drag = 0.9;
         let scrollMag = .005;
         this.targetScroll *= drag;
         this.camera.position.add(new THREE.Vector3(0,0,scrollMag * this.targetScroll))
-        this.camera.position.max(new THREE.Vector3(0.5*0.3,0.5*0.3,0.5*0.3))
-        console.log(this.camera.position.z)
+        this.camera.position.max(new THREE.Vector3(0.5,0.5,0.5).multiplyScalar(1.0/0.3))
     }
 }
