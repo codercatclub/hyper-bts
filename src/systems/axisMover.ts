@@ -39,9 +39,8 @@ export class AxisMover {
     update(deltaTime: number = 0.016): void {
         this.totalTime += deltaTime;
         let drag = 0.9;
-        let scrollMag = .005;
+        let scrollMag = -.005;
         this.targetScroll *= drag;
         this.camera.position.add(new THREE.Vector3(0,0,scrollMag * this.targetScroll))
-        this.camera.position.max(new THREE.Vector3(0.5,0.5,0.5).multiplyScalar(1.0/0.3))
     }
 }
