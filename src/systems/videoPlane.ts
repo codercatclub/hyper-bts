@@ -3,6 +3,7 @@ import * as THREE from 'three';
 const X_MAX = 5;
 const Y_MAX = 5;
 const Z_MAX = 10;
+const BATCH_SIZE = 3;
 
 export class VideoPlane {
     private camera: THREE.PerspectiveCamera;
@@ -19,68 +20,60 @@ export class VideoPlane {
 
     initVideoPlane(videoPlaneObj: THREE.Object3D) {
         const imgList = [
-            "00/0.mp4",
-            "00/1.mp4",
-            "00/2.mp4",
-            "00/3.mp4",
-            "01/0.mp4",
-            "01/1.mp4",
-            "01/2.mp4",
-            "01/3.mp4",
-            "02/0.mp4",
-            "02/1.mp4",
-            "02/2.mp4",
-            "02/3.mp4",
-            "10/0.mp4",
-            "10/1.mp4",
-            "10/2.mp4",
-            "10/3.mp4",
-            "11/0.mp4",
-            "11/1.mp4",
-            "11/2.mp4",
-            "11/3.mp4",
-            "12/0.mp4",
-            "12/1.mp4",
-            "12/2.mp4",
-            "12/3.mp4",
-            "20/0.mp4",
-            "20/1.mp4",
-            "20/2.mp4",
-            "20/3.mp4",
-            "21/0.mp4",
-            "21/1.mp4",
-            "21/2.mp4",
-            "21/3.mp4",
-            "22/0.mp4",
-            "22/1.mp4",
-            "22/2.mp4",
-            "22/3.mp4",
+            "00/0.mp4", "00/1.mp4", "00/2.mp4", "00/3.mp4",
+            "01/0.mp4", "01/1.mp4", "01/2.mp4",
+            "02/0.mp4", "02/1.mp4", "02/2.mp4", "02/3.mp4", "02/4.mp4",
+            "03/0.mp4", "03/1.mp4", "03/2.mp4", "03/3.mp4", "03/4.mp4", "03/6.mp4",
+            "10/0.mp4", "10/1.mp4", "10/2.mp4", "10/3.mp4", "10/4.mp4",
+            "11/0.mp4", "11/1.mp4", "11/2.mp4", "11/3.mp4", "11/4.mp4", "11/5.mp4",
+            "12/0.mp4", "12/1.mp4", "12/2.mp4", "12/3.mp4", "12/4.mp4", "12/5.mp4", "12/6.mp4",
+            "13/0.mp4", "13/1.mp4", "13/2.mp4", "13/3.mp4", "13/4.mp4", "13/5.mp4", "13/6.mp4",
+            "20/0.mp4", "20/1.mp4", "20/2.mp4",
+            "21/0.mp4", "21/1.mp4", "21/2.mp4", "21/3.mp4", "21/4.mp4", "21/5.mp4",
+            "22/0.mp4", "22/1.mp4", "22/2.mp4", "22/3.mp4", "22/4.mp4", "22/5.mp4", "22/6.mp4",
+            "23/0.mp4", "23/1.mp4", "23/2.mp4", "23/3.mp4", "23/4.mp4", "23/5.mp4", "23/6.mp4", "23/7.mp4", "23/8.mp4", "23/9.mp4",
         ];
-        
-        imgList.forEach((imgPath, idx) => {
-            let x = parseInt(imgPath[0]);
-            let y = parseInt(imgPath[1]);
-            let z = parseInt(imgPath[3]);
-            let fullPath = "assets/textures/" + imgPath;
 
-            if (imgPath[5] == "m") {
-                const video = document.createElement('video');
-                video.src = fullPath;
-                video.autoplay = true;
-                video.loop = true;
-                video.muted = true;
-                video.play()
+        const loadAsset = (imgPath: string): Promise<void> => {
+            return new Promise((resolve, reject) => {
+                const x = parseInt(imgPath[0]);
+                const y = parseInt(imgPath[1]);
+                const z = parseInt(imgPath[3]);
+                const fullPath = "assets/textures/" + imgPath;
 
-                const videoTex = new THREE.VideoTexture(video);
-                videoTex.needsUpdate = true;
-                this.setTexAt(x, y, z, videoTex);
-            } else {
-                new THREE.TextureLoader().load(fullPath, (tex) => {
-                    this.setTexAt(x, y, z, tex);
-                });
+                if (imgPath[5] === "m") {
+                    const video = document.createElement('video');
+                    video.loop = true;
+                    video.muted = true;
+                    video.autoplay = true;
+                    video.playsInline = true;
+                    video.src = fullPath;
+
+                    video.addEventListener('canplaythrough', () => {
+                        video.play()
+                        const videoTex = new THREE.VideoTexture(video);
+                        videoTex.needsUpdate = true;
+                        this.setTexAt(x, y, z, videoTex);
+                        resolve();
+                    }, { once: true });
+
+                    video.addEventListener('error', reject, { once: true });
+                } else {
+                    new THREE.TextureLoader().load(fullPath, (tex) => {
+                        this.setTexAt(x, y, z, tex);
+                        resolve();
+                    }, undefined, reject);
+                }
+            });
+        };
+
+        const loadAllInBatches = async () => {
+            for (let i = 0; i < imgList.length; i += BATCH_SIZE) {
+                await Promise.all(imgList.slice(i, i + BATCH_SIZE).map(loadAsset));
             }
+        };
 
-        });
+        loadAllInBatches()
 
         const uniforms = {
             camPos: { value: new THREE.Vector3() },
@@ -147,9 +140,9 @@ export class VideoPlane {
             vec3 c1 = texture2D(m1, vUv).rgb;
             vec3 c2 = texture2D(m2, vUv).rgb;
             vec3 c3 = texture2D(m3, vUv).rgb;
-            c1 = mix(c1, vColor, 2.0*blendX*vLerp.x);
-            c2 = mix(c2, vColor, 2.0*blendY*vLerp.y);
-            c3 = mix(c3, vColor, 2.0*blendZ*vLerp.z);
+            //c1 = mix(c1, vColor, 2.0*blendX*vLerp.x);
+            //c2 = mix(c2, vColor, 2.0*blendY*vLerp.y);
+            //c3 = mix(c3, vColor, 2.0*blendZ*vLerp.z);
 
             float wx = 1.0 - blendX;
             float wy = 1.0 - blendY;
@@ -166,7 +159,8 @@ export class VideoPlane {
             vec3 colorA = blendXY(map1a, map2a, map3a);
             vec3 colorB = blendXY(map1b, map2b, map3b);
 
-            vec3 colorZ = mix(mix(colorA,vColor,2.0*blendZ*vLerp.z), mix(colorB,vColor,2.0*blendZ*vLerp.z), blendZ);
+            //vec3 colorZ = mix(mix(colorA,vColor,2.0*blendZ*vLerp.z), mix(colorB,vColor,2.0*blendZ*vLerp.z), blendZ);
+            vec3 colorZ = mix(colorA, colorB, blendZ);
             gl_FragColor = vec4(colorZ, 1.0);
         }
         `;
@@ -243,5 +237,22 @@ export class VideoPlane {
         u.camPosNext.value.copy(
             new THREE.Vector3(xIdx + ax.dir, yIdx + ay.dir, zIdx + az.dir).multiplyScalar(1 / gridScale)
         );
+
+        // Pause all videos, then play only active ones
+        const activeTextures = new Set([
+            u.map1a.value, u.map2a.value, u.map3a.value,
+            u.map1b.value, u.map2b.value, u.map3b.value,
+        ]);
+
+        this.spatialArray.forEach(tex => {
+            if (tex instanceof THREE.VideoTexture) {
+                const video = tex.image as HTMLVideoElement;
+                if (activeTextures.has(tex)) {
+                    if (video.paused) video.play();
+                } else {
+                    if (!video.paused) video.pause();
+                }
+            }
+        });
     }
 }
