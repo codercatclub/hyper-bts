@@ -9,20 +9,23 @@ export class AxisMover {
         this.totalTime = 0.0;
         this.targetScroll = 0;
         this.camera = camera;
-        this.camera.position.set(0.5,0.5,0.5)
         document.addEventListener("keydown", (event: KeyboardEvent) => {
             let moveDir = new THREE.Vector3()
             switch (event.key) {
                 case "ArrowUp":
+                case "w":
                     moveDir.set(0, 1, 0)
                     break;
                 case "ArrowDown":
+                case "s":
                     moveDir.set(0, -1, 0)
                     break;
                 case "ArrowLeft":
+                case "a":
                     moveDir.set(-1, 0, 0)
                     break;
                 case "ArrowRight":
+                case "d":
                     moveDir.set(1, 0, 0)
                     break;
             }

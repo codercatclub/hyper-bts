@@ -6,21 +6,25 @@ import * as THREE from 'three';
 (async () => {
   const assetManager = new AssetManager()
     .addAsset("assets/models/nav.glb")
-    .addAsset("assets/models/videoPlane.glb");
+    .addAsset("assets/models/videoPlane.glb")
+    .addAsset("assets/models/videoPlaneFused.glb");
 
   await assetManager.load();
   const videoPlaneObj = assetManager.loadedAssets.objects.get("assets/models/videoPlane.glb")
+  const videoPlaneFusedObj = assetManager.loadedAssets.objects.get("assets/models/videoPlaneFused.glb")
   const nav = assetManager.loadedAssets.objects.get("assets/models/nav.glb")
 
   const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111111)
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   const axisMover = new AxisMover(camera);
   const videoPlane = new VideoPlane(camera);
 
 
-  if (videoPlaneObj) {
+  if (videoPlaneObj&&videoPlaneFusedObj) {
     scene.add(videoPlaneObj)
-    videoPlane.initVideoPlane(videoPlaneObj)
+    scene.add(videoPlaneFusedObj)
+    videoPlane.initVideoPlane(videoPlaneObj,videoPlaneFusedObj)
   }
 
   if (nav) {

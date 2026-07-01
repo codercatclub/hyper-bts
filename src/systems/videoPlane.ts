@@ -5,9 +5,10 @@ const X_MAX = 5;
 const Y_MAX = 5;
 const Z_MAX = 11;
 const BATCH_SIZE = 3;
+const GRID_SCALE = .3;
 
 const X_CAM_MAX = 3;
-const Y_CAM_MAX = 4;
+const Y_CAM_MAX = 5;
 
 export class VideoPlane {
     private camera: THREE.PerspectiveCamera;
@@ -26,6 +27,10 @@ export class VideoPlane {
         this.depthMax = new Array(X_MAX * Y_MAX).fill(0);
         this.videoMaterial = new THREE.ShaderMaterial();
         this.navMaterial = new THREE.ShaderMaterial();
+
+
+        this.camera.position.copy(new THREE.Vector3(0.5 + 1, 0.5 + 2, 0.5).multiplyScalar(1.0 / GRID_SCALE))
+
     }
 
     initVideoNav(navObj: THREE.Object3D) {
@@ -82,10 +87,14 @@ export class VideoPlane {
                 c = vec3(1.0,1.0,1.0);
             }
 
-            vec3 highlightColor = vec3(1.0,0.0,1.0);
+            vec3 highlightColor = 1.1*vec3(1.0,0.5,1.0);
             vec3 lightColor = vec3(1.0,1.0,1.0);
-            vec3 baseColor = 0.5*vec3(1.0,1.0,1.0);
-            gl_FragColor = vec4(c*highlightColor + 0.2*vUv.r*lightColor + baseColor, 1.0);
+            vec3 baseColor = 0.6*vec3(0.5,0.8,0.85);
+            vec3 centerColor = 1.1*vec3(0.5,0.03,0.1);
+
+            vec3 finalColor = mix(baseColor, highlightColor, c);
+            finalColor = mix(centerColor, finalColor, vUv.g); 
+            gl_FragColor = vec4(finalColor + 0.2*vUv.r*lightColor, 1.0);
         }
         `;
 
@@ -95,6 +104,7 @@ export class VideoPlane {
             uniforms,
             vertexColors: true,
             side: THREE.DoubleSide,
+            transparent: true
         });
 
         this.navObj = navObj;
@@ -103,11 +113,12 @@ export class VideoPlane {
                 child.material = this.navMaterial;
                 child.frustumCulled = false;
                 child.material.depthTest = false;
+                child.renderOrder = 999;
             }
         });
     }
 
-    initVideoPlane(videoPlaneObj: THREE.Object3D) {
+    initVideoPlane(videoPlaneObj: THREE.Object3D, videoPlaneFusedObj: THREE.Object3D) {
         const imgList = [
             "00/0.mp4", "00/1.mp4", "00/2.mp4", "00/3.mp4",
             "01/0.mp4", "01/1.mp4", "01/2.mp4",
@@ -115,8 +126,9 @@ export class VideoPlane {
             "03/0.mp4", "03/1.mp4", "03/2.mp4", "03/3.mp4", "03/4.mp4", "03/5.mp4",
             "10/0.mp4", "10/1.mp4", "10/2.mp4", "10/3.mp4", "10/4.mp4",
             "11/0.mp4", "11/1.mp4", "11/2.mp4", "11/3.mp4", "11/4.mp4", "11/5.mp4",
-            "12/0.mp4", "12/1.mp4", "12/2.mp4", "12/3.mp4", "12/4.mp4", "12/5.mp4", "12/6.mp4",
+            "12/0.mp4", "12/1.mp4", "12/2.mp4", "12/3.mp4",
             "13/0.mp4", "13/1.mp4", "13/2.mp4", "13/3.mp4", "13/4.mp4", "13/5.mp4", "13/6.mp4",
+            "14/0.mp4", "14/1.mp4", "14/2.mp4", "14/3.mp4", "14/4.mp4", "14/5.mp4", "14/6.mp4",
             "20/0.mp4", "20/1.mp4", "20/2.mp4",
             "21/0.mp4", "21/1.mp4", "21/2.mp4", "21/3.mp4", "21/4.mp4", "21/5.mp4",
             "22/0.mp4", "22/1.mp4", "22/2.mp4", "22/3.mp4", "22/4.mp4", "22/5.mp4", "22/6.mp4",
@@ -139,7 +151,7 @@ export class VideoPlane {
                     video.src = fullPath;
                     const videoTex = new THREE.VideoTexture(video);
                     this.setTexAt(x, y, z, videoTex);
-                    this.updateDepthMaxAt(x,y,z);
+                    this.updateDepthMaxAt(x, y, z);
                     video.addEventListener('canplaythrough', () => {
                         videoTex.needsUpdate = true;
                         video.play()
@@ -165,6 +177,7 @@ export class VideoPlane {
         loadAllInBatches()
 
         const uniforms = {
+            camPosReal: { value: new THREE.Vector3() },
             camPos: { value: new THREE.Vector3() },
             camPosNext: { value: new THREE.Vector3() },
             blendX: { value: 0 },
@@ -183,7 +196,9 @@ export class VideoPlane {
         varying vec2 vUv;
         varying vec3 vColor;
         varying vec3 vLerp;
+        varying float vDepth;
 
+        uniform vec3 camPosReal;
         uniform vec3 camPos;
         uniform vec3 camPosNext;
         uniform float blendX;
@@ -192,19 +207,28 @@ export class VideoPlane {
 
         void main() {
             vUv = uv;
-            vColor = round(color);
+            vColor = color;
             vec4 worldPos = modelMatrix * vec4(position, 1.0);
 
             float lerpX = step(blendX,color.r)*color.g;
             float lerpY = step(blendY,color.r)*color.g;
             float lerpZ = step(blendZ,color.r)*color.g;
-
+            vec3 ogWorldPos = worldPos.xyz;
+            
             vLerp = vec3(lerpX, lerpY, lerpZ);
             worldPos.xyz *= 3.5;
+            
 
             worldPos.x += mix(camPos.x, camPosNext.x, 2.0*lerpX*blendX)+.5/0.3;
             worldPos.y += mix(camPos.y, camPosNext.y, 2.0*lerpY*blendY)+.5/0.3;
             worldPos.z += mix(camPos.z, camPosNext.z, 2.0*lerpZ*blendZ)-0.6;
+
+            vec3 worldPosStuck = ogWorldPos.xyz + camPosReal;
+            worldPosStuck.xyz += vec3(0.0,0.0,-0.6);
+            worldPos.xyz = mix(worldPos.xyz, worldPosStuck, color.b);
+            
+            vDepth = camPosReal.z - worldPos.z - 2.3;
+
 
             gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
@@ -214,6 +238,7 @@ export class VideoPlane {
         varying vec2 vUv;
         varying vec3 vColor;
         varying vec3 vLerp;
+        varying float vDepth;
 
         uniform sampler2D map1a;
         uniform sampler2D map2a;
@@ -248,9 +273,11 @@ export class VideoPlane {
             vec3 colorA = blendXY(map1a, map2a, map3a);
             vec3 colorB = blendXY(map1b, map2b, map3b);
 
-            //vec3 colorZ = mix(mix(colorA,vColor,2.0*blendZ*vLerp.z), mix(colorB,vColor,2.0*blendZ*vLerp.z), blendZ);
             vec3 colorZ = mix(colorA, colorB, blendZ);
-            gl_FragColor = vec4(colorZ, 1.0);
+
+            float rDepth =  min(max(1.0-.2*vDepth,0.0),1.0);
+            float alpha = mix(1.3*vColor.r, rDepth, vColor.r);
+            gl_FragColor = vec4(colorZ, alpha);
         }
         `;
 
@@ -260,6 +287,8 @@ export class VideoPlane {
             uniforms,
             vertexColors: true,
             side: THREE.DoubleSide,
+            transparent: true,
+            // blending: THREE.MultiplyBlending,
         });
 
         this.videoPlaneObj = videoPlaneObj;
@@ -267,6 +296,14 @@ export class VideoPlane {
             if (child instanceof THREE.Mesh) {
                 child.material = this.videoMaterial;
                 child.frustumCulled = false;
+            }
+        });
+
+        videoPlaneFusedObj.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                child.material = this.videoMaterial;
+                child.frustumCulled = false;
+                child.position.setZ(0.001)
             }
         });
     }
@@ -299,16 +336,15 @@ export class VideoPlane {
     }
 
     update(deltaTime: number = 0.016): void {
-        let gridScale = .3;
-        this.camera.position.max(new THREE.Vector3(0.5,0.5,0.5).multiplyScalar(1.0/gridScale))
-        
-        let gridPos = this.camera.position.clone().multiplyScalar(gridScale);
+        this.camera.position.max(new THREE.Vector3(0.5, 0.5, 0.5).multiplyScalar(1.0 / GRID_SCALE))
+
+        let gridPos = this.camera.position.clone().multiplyScalar(GRID_SCALE);
         const xIdx = Math.floor(gridPos.x);
         const yIdx = Math.floor(gridPos.y);
         const zIdx = Math.floor(gridPos.z);
-        
+
         let depthMax = this.getDepthMaxAt(xIdx, yIdx);
-        this.camera.position.min(new THREE.Vector3(X_CAM_MAX-0.5, Y_CAM_MAX-0.5, depthMax+0.5).multiplyScalar(1.0 / gridScale))
+        this.camera.position.min(new THREE.Vector3(X_CAM_MAX - 0.5, Y_CAM_MAX - 0.5, depthMax + 0.5).multiplyScalar(1.0 / GRID_SCALE))
 
 
         const ax = this.getAxisBlend(gridPos.x - xIdx);
@@ -331,11 +367,14 @@ export class VideoPlane {
         u.blendY.value = ay.blend;
         u.blendZ.value = az.blend;
 
+        u.camPosReal.value.copy(
+            this.camera.position
+        );
         u.camPos.value.copy(
-            new THREE.Vector3(xIdx, yIdx, zIdx).multiplyScalar(1 / gridScale)
+            new THREE.Vector3(xIdx, yIdx, zIdx).multiplyScalar(1 / GRID_SCALE)
         );
         u.camPosNext.value.copy(
-            new THREE.Vector3(xIdx + ax.dir, yIdx + ay.dir, zIdx + az.dir).multiplyScalar(1 / gridScale)
+            new THREE.Vector3(xIdx + ax.dir, yIdx + ay.dir, zIdx + az.dir).multiplyScalar(1 / GRID_SCALE)
         );
 
         const nU = this.navMaterial.uniforms;
