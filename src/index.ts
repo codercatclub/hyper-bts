@@ -21,10 +21,10 @@ import * as THREE from 'three';
   const videoPlane = new VideoPlane(camera);
 
 
-  if (videoPlaneObj&&videoPlaneFusedObj) {
+  if (videoPlaneObj && videoPlaneFusedObj) {
     scene.add(videoPlaneObj)
     scene.add(videoPlaneFusedObj)
-    videoPlane.initVideoPlane(videoPlaneObj,videoPlaneFusedObj)
+    videoPlane.initVideoPlane(videoPlaneObj, videoPlaneFusedObj)
   }
 
   if (nav) {
@@ -36,6 +36,12 @@ import * as THREE from 'three';
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setAnimationLoop(animate);
   document.body.appendChild(renderer.domElement);
+
+  window.addEventListener('resize', () => {
+ camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 
   function animate() {
     axisMover.update()

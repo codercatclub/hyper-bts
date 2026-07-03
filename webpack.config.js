@@ -42,6 +42,9 @@ module.exports = {
         {
           from: 'assets',
           to: 'assets',
+          globOptions: {
+            ignore: ['**/textures/**'],
+          },
         },
       ],
     }),

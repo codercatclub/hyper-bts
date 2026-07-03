@@ -27,10 +27,7 @@ export class VideoPlane {
         this.depthMax = new Array(X_MAX * Y_MAX).fill(0);
         this.videoMaterial = new THREE.ShaderMaterial();
         this.navMaterial = new THREE.ShaderMaterial();
-
-
         this.camera.position.copy(new THREE.Vector3(0.5 + 1, 0.5 + 2, 0.5).multiplyScalar(1.0 / GRID_SCALE))
-
     }
 
     initVideoNav(navObj: THREE.Object3D) {
@@ -119,7 +116,7 @@ export class VideoPlane {
     }
 
     initVideoPlane(videoPlaneObj: THREE.Object3D, videoPlaneFusedObj: THREE.Object3D) {
-        const imgList = [
+        const imgListRaw = [
             "00/0.mp4", "00/1.mp4", "00/2.mp4", "00/3.mp4",
             "01/0.mp4", "01/1.mp4", "01/2.mp4",
             "02/0.mp4", "02/1.mp4", "02/2.mp4", "02/3.mp4", "02/4.mp4",
@@ -135,15 +132,30 @@ export class VideoPlane {
             "23/0.mp4", "23/1.mp4", "23/2.mp4", "23/3.mp4", "23/4.mp4", "23/5.mp4", "23/6.mp4", "23/7.mp4", "23/8.mp4", "23/9.mp4",
         ];
 
+        //sort the list first 
+        const centerX = 1, centerY = 2, centerZ = 0;
+        const imgList = imgListRaw.sort((a, b) => {
+            const parseCoords = (p: string) => {
+                const [folder, file] = p.split("/");
+                return { x: +folder[0], y: +folder[1], z: +file.replace(".mp4", "") };
+            };
+            const ca = parseCoords(a);
+            const cb = parseCoords(b);
+            const distA = Math.hypot(ca.x - centerX, ca.y - centerY, ca.z - centerZ);
+            const distB = Math.hypot(cb.x - centerX, cb.y - centerY, cb.z - centerZ);
+            return distA - distB;
+        });
+
         const loadAsset = (imgPath: string): Promise<void> => {
             return new Promise((resolve, reject) => {
                 const x = parseInt(imgPath[0]);
                 const y = parseInt(imgPath[1]);
                 const z = parseInt(imgPath[3]);
-                const fullPath = "assets/textures/" + imgPath;
+                const fullPath = "https://cdn.codercat.xyz/hyper-bts/" + imgPath;
 
                 if (imgPath[5] === "m") {
                     const video = document.createElement('video');
+                    video.crossOrigin = 'anonymous';
                     video.loop = true;
                     video.muted = true;
                     video.autoplay = true;
@@ -173,6 +185,7 @@ export class VideoPlane {
                 await Promise.all(imgList.slice(i, i + BATCH_SIZE).map(loadAsset));
             }
         };
+
 
         loadAllInBatches()
 
@@ -378,7 +391,12 @@ export class VideoPlane {
         );
 
         const nU = this.navMaterial.uniforms;
-        nU.camPos.value.copy(this.camera.position.clone().add(new THREE.Vector3(-2.3, -1.1, -2)));
+
+        const height = -3;  
+        const width = height * this.camera.aspect;            
+        const x = -width / 2 - 0.32;
+        const y = -height / 2 - 0.4;
+        nU.camPos.value.copy(this.camera.position.clone().add(new THREE.Vector3(-x, -y, -2)));
 
         let xAxis = new THREE.Vector3();
         //check available textures xAxis. 
