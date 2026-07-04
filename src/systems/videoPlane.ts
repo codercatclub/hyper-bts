@@ -15,7 +15,6 @@ export class VideoPlane {
     private videoPlaneObj: THREE.Object3D;
     private navObj: THREE.Object3D;
     private videoMaterial: THREE.ShaderMaterial;
-    private navMaterial: THREE.ShaderMaterial;
     private spatialArray: Array<THREE.Texture>;
     private depthMax: Array<number>;
 
@@ -26,93 +25,7 @@ export class VideoPlane {
         this.spatialArray = new Array(X_MAX * Y_MAX * Z_MAX);
         this.depthMax = new Array(X_MAX * Y_MAX).fill(0);
         this.videoMaterial = new THREE.ShaderMaterial();
-        this.navMaterial = new THREE.ShaderMaterial();
         this.camera.position.copy(new THREE.Vector3(0.5 + 1, 0.5 + 2, 0.5).multiplyScalar(1.0 / GRID_SCALE))
-    }
-
-    initVideoNav(navObj: THREE.Object3D) {
-        const uniforms = {
-            camPos: { value: new THREE.Vector3() },
-            xAxis: { value: new THREE.Vector3() },
-            yAxis: { value: new THREE.Vector3() },
-            zAxis: { value: new THREE.Vector3() },
-        };
-
-        const vertexShader = `
-        varying vec2 vUv;
-        varying vec3 vColor;
-        uniform vec3 camPos;
-
-
-        void main() {
-            vUv = uv;
-            vColor = color;
-            vec4 worldPos = modelMatrix * vec4(position, 1.0);
-            worldPos.xyz += camPos;
-            gl_Position = projectionMatrix * viewMatrix * worldPos;
-        }
-        `;
-
-        const fragmentShader = `
-        varying vec2 vUv;
-        varying vec3 vColor;
-        varying vec3 vLerp;
-        uniform vec3 xAxis;
-        uniform vec3 yAxis;
-        uniform vec3 zAxis;
-
-        void main() {
-            vec3 c;
-            vec3 cColor = 2.0 * vColor - 1.0;
-
-            if(cColor.z < -0.5 && xAxis.x > 0.5) {
-                c = vec3(1.0,1.0,1.0);
-            }
-            if(cColor.z > 0.5 && xAxis.z > 0.5) {
-                c = vec3(1.0,1.0,1.0);
-            }
-            if(cColor.y < -0.5 && yAxis.x > 0.5) {
-                c = vec3(1.0,1.0,1.0);
-            }
-            if(cColor.y > 0.5 && yAxis.z > 0.5) {
-                c = vec3(1.0,1.0,1.0);
-            }
-            if(cColor.x > 0.5 && zAxis.x > 0.5) {
-                c = vec3(1.0,1.0,1.0);
-            }
-            if(cColor.x < -0.5 && zAxis.z > 0.5) {
-                c = vec3(1.0,1.0,1.0);
-            }
-
-            vec3 highlightColor = 1.1*vec3(1.0,0.5,1.0);
-            vec3 lightColor = vec3(1.0,1.0,1.0);
-            vec3 baseColor = 0.6*vec3(0.5,0.8,0.85);
-            vec3 centerColor = 1.1*vec3(0.5,0.03,0.1);
-
-            vec3 finalColor = mix(baseColor, highlightColor, c);
-            finalColor = mix(centerColor, finalColor, vUv.g); 
-            gl_FragColor = vec4(finalColor + 0.2*vUv.r*lightColor, 1.0);
-        }
-        `;
-
-        this.navMaterial = new THREE.ShaderMaterial({
-            vertexShader,
-            fragmentShader,
-            uniforms,
-            vertexColors: true,
-            side: THREE.DoubleSide,
-            transparent: true
-        });
-
-        this.navObj = navObj;
-        this.navObj.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
-                child.material = this.navMaterial;
-                child.frustumCulled = false;
-                child.material.depthTest = false;
-                child.renderOrder = 999;
-            }
-        });
     }
 
     initVideoPlane(videoPlaneObj: THREE.Object3D, videoPlaneFusedObj: THREE.Object3D) {
@@ -389,44 +302,6 @@ export class VideoPlane {
         u.camPosNext.value.copy(
             new THREE.Vector3(xIdx + ax.dir, yIdx + ay.dir, zIdx + az.dir).multiplyScalar(1 / GRID_SCALE)
         );
-
-        const nU = this.navMaterial.uniforms;
-
-        const height = -3;  
-        const width = height * this.camera.aspect;            
-        const x = -width / 2 - 0.32;
-        const y = -height / 2 - 0.4;
-        nU.camPos.value.copy(this.camera.position.clone().add(new THREE.Vector3(-x, -y, -2)));
-
-        let xAxis = new THREE.Vector3();
-        //check available textures xAxis. 
-        if (this.getTexAt(xIdx - 1, yIdx, zIdx) && xIdx - 1 >= 0) {
-            xAxis.setX(1)
-        }
-        if (this.getTexAt(xIdx + 1, yIdx, zIdx)) {
-            xAxis.setZ(1)
-        }
-        nU.xAxis.value.copy(xAxis)
-
-        let yAxis = new THREE.Vector3();
-        //check available textures xAxis. 
-        if (this.getTexAt(xIdx, yIdx - 1, zIdx) && yIdx - 1 >= 0) {
-            yAxis.setX(1)
-        }
-        if (this.getTexAt(xIdx, yIdx + 1, zIdx)) {
-            yAxis.setZ(1)
-        }
-        nU.yAxis.value.copy(yAxis)
-
-        let zAxis = new THREE.Vector3();
-        //check available textures xAxis. 
-        if (this.getTexAt(xIdx, yIdx, zIdx - 1) && zIdx - 1 >= 0) {
-            zAxis.setZ(1)
-        }
-        if (this.getTexAt(xIdx, yIdx, zIdx + 1)) {
-            zAxis.setX(1)
-        }
-        nU.zAxis.value.copy(zAxis)
 
         // Pause all videos, then play only active ones
         const activeTextures = new Set([

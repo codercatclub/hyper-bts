@@ -1,5 +1,6 @@
 import { AssetManager } from "./lib/assetManager";
 import { AxisMover } from "./systems/axisMover";
+import { NavObj } from "./systems/navObj";
 import { VideoPlane } from "./systems/videoPlane";
 import * as THREE from 'three';
 
@@ -19,6 +20,7 @@ import * as THREE from 'three';
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   const axisMover = new AxisMover(camera);
   const videoPlane = new VideoPlane(camera);
+  const navObj = new NavObj(camera, videoPlane);
 
 
   if (videoPlaneObj && videoPlaneFusedObj) {
@@ -29,7 +31,7 @@ import * as THREE from 'three';
 
   if (nav) {
     scene.add(nav)
-    videoPlane.initVideoNav(nav)
+    navObj.initVideoNav(nav)
   }
 
   const renderer = new THREE.WebGLRenderer();
@@ -46,6 +48,7 @@ import * as THREE from 'three';
   function animate() {
     axisMover.update()
     videoPlane.update()
+    navObj.update()
     renderer.render(scene, camera);
   }
 })();
