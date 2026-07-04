@@ -38,7 +38,7 @@ import * as THREE from 'three';
   document.body.appendChild(renderer.domElement);
 
   window.addEventListener('resize', () => {
- camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });

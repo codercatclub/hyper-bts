@@ -4,4 +4,4 @@ dist
 *.Identifier
 yarn-error.log
 .DS_Store
-assets
+assets/textures
