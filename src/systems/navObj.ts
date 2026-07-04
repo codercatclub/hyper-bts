@@ -109,11 +109,13 @@ export class NavObj {
             }
         });
 
-        window.addEventListener('pointerdown', () => {
+        window.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
             this.isHolding = true;
         });
 
-        window.addEventListener('pointerup', () => {
+        window.addEventListener('pointerup', (event ) => {
+            event.preventDefault();
             this.isHolding = false;
         });
 
