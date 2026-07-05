@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { depth } from 'three/examples/jsm/nodes/Nodes.js';
 
 const X_MAX = 5;
 const Y_MAX = 5;
@@ -75,7 +74,7 @@ export class VideoPlane {
                     video.autoplay = true;
                     video.playsInline = true;
                     video.innerHTML = `
-                        <source src="${fullPath}" type="video/mp4">
+                        
                         <source src="${fullPathFallback}" type="video/mp4">
                     `;
                     // video.src = fullPath;
@@ -84,7 +83,7 @@ export class VideoPlane {
                     this.updateDepthMaxAt(x, y, z);
                     video.addEventListener('canplaythrough', () => {
                         videoTex.needsUpdate = true;
-                        video.play()
+                        video.play().catch((e) => console.warn(e));
                         resolve();
                     }, { once: true });
 
@@ -318,7 +317,7 @@ export class VideoPlane {
             if (tex instanceof THREE.VideoTexture) {
                 const video = tex.image as HTMLVideoElement;
                 if (activeTextures.has(tex)) {
-                    if (video.paused) video.play();
+                    if (video.paused) video.play().catch((e) => console.warn(e));
                 } else {
                     if (!video.paused) video.pause();
                 }

@@ -109,6 +109,14 @@ export class NavObj {
             }
         });
 
+        window.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+        });
+
+        window.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+        }, { passive: false });
+
         window.addEventListener('pointerdown', (event) => {
             event.preventDefault();
             this.isHolding = true;
@@ -119,7 +127,7 @@ export class NavObj {
             this.isHolding = false;
         });
 
-        window.addEventListener('mousemove', (event) => {
+        window.addEventListener('pointermove', (event) => {
             this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
