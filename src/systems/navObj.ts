@@ -164,6 +164,10 @@ export class NavObj {
         const x = -width / 2 - 0.32;
         const y = -height / 2 - 0.4;
 
+        const isMobile = window.innerWidth < 768;
+        const scale = isMobile ? 1.6 : 1.0;
+        this.navObj.scale.setScalar(scale);
+
         let gridPos = this.camera.position.clone().multiplyScalar(0.3);
         const xIdx = Math.floor(gridPos.x);
         const yIdx = Math.floor(gridPos.y);
@@ -227,7 +231,8 @@ export class NavObj {
             this.camera.position.add(moveDir.multiplyScalar(0.05))
         }
 
-        this.navObj.position.copy(this.camera.position.clone().add(new THREE.Vector3(-x, -y, -2)));
+        const xPos = isMobile ? x : -x;
+        this.navObj.position.copy(this.camera.position.clone().add(new THREE.Vector3(xPos, -y, -2)));
 
     }
 }
