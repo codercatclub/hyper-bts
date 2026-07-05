@@ -73,9 +73,12 @@ export class VideoPlane {
                     video.muted = true;
                     video.autoplay = true;
                     video.playsInline = true;
+                    // NOTE (kif): Browser compare video type to handle fallback therefore we need to make sure the type is distinct
+                    // The actual codec parameters after codec name might be wrong. I used the most common given by llm.
+                    // When I tried to uses more accurate parameter extracted from ffmpeg it crashes safari on iphone8. 
                     video.innerHTML = `
-                        
-                        <source src="${fullPathFallback}" type="video/mp4">
+                        <source src="${fullPath}" type='video/mp4; codecs="av01.0.05M.08"'>
+                        <source src="${fullPathFallback}" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
                     `;
                     // video.src = fullPath;
                     const videoTex = new THREE.VideoTexture(video);
