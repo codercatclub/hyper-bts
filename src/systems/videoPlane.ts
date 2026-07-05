@@ -65,6 +65,7 @@ export class VideoPlane {
                 const y = parseInt(imgPath[1]);
                 const z = parseInt(imgPath[3]);
                 const fullPath = "https://cdn.codercat.xyz/hyper-bts/" + imgPath;
+                const fullPathFallback = "https://cdn.codercat.xyz/hyper-bts/vidH264/" + imgPath;
 
                 if (imgPath[5] === "m") {
                     const video = document.createElement('video');
@@ -73,7 +74,11 @@ export class VideoPlane {
                     video.muted = true;
                     video.autoplay = true;
                     video.playsInline = true;
-                    video.src = fullPath;
+                    video.innerHTML = `
+                        <source src="${fullPath}" type="video/mp4">
+                        <source src="${fullPathFallback}" type="video/mp4">
+                    `;
+                    // video.src = fullPath;
                     const videoTex = new THREE.VideoTexture(video);
                     this.setTexAt(x, y, z, videoTex);
                     this.updateDepthMaxAt(x, y, z);
